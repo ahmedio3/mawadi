@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="com_google_android_gms_fonts_certs">
+        <item>@array/com_google_android_gms_fonts_certs_dev</item>
+    </array>
+    <string-array name="com_google_android_gms_fonts_certs_dev">
+        <item>MIIEqDCCA5CgAwIBAgIJANWFuNM4lZKUMA0GCSqGSIb3DQEBCwUAMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNTW91bnRhaW4gVmlldzEQMA4GA1UECgwHQW5kcm9pZDESMBAGA1UEAwwJc3VwcGxpY2F0MSowKAYJKoZIhvcNAQkBFhthbmRyb2lkQGdtYWlsLmNvbTAeFw0wODAyMjExMDIyMDVaFw0zNjAxMDgxMDIyMDVaMIGUMQswCQYDVQQGEwJVUzETMBEGA1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNTW91bnRhaW4gVmlldzEQMA4GA1UECgwHQW5kcm9pZDESMBAGA1UEAwwJc3VwcGxpY2F0MSowKAYJKoZIhvcNAQkBFhthbmRyb2lkQGdtYWlsLmNvbTCCASAwDQYJKoZIhvcNAQEBBQADggEBADbFSMKw1+DSuZosSTlPmM9Vd+aGTRwEst43DYSr1IieK4ybT1Sric7laY6K2aYAxHQLQtx3kRCq5TcE20ehJKNW6hTVo1MArA96WsdWweNIannDaFqYHUYUnTwhARF1i0n2rUieeBbK3K0G3B02+QifJkjAvqN5aW6sA3yOPxPoXzj6WhNNWv3aVca0JyeJzYWFb1a4K1g2wIAyP2XajJ3F1A1+4HDewM6oQK8XQ Lange</item>
+    </string-array>
+</resources>
