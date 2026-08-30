@@ -230,6 +230,7 @@ fun SubjectsScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SubjectCard(
     subject: Subject,

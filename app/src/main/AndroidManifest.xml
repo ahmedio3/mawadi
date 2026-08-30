@@ -6,7 +6,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="موادي"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoTitleBar">
+        android:theme="@style/Theme.Mawadi">
         
         <activity
             android:name=".MainActivity"
