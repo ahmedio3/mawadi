@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SubjectDao {
-    @Query("SELECT * FROM subjects ORDER BY isPinned DESC, pinnedAt DESC, `order` ASC, id ASC")
+    @Query("SELECT * FROM subjects ORDER BY isPinned DESC, `order` ASC, id ASC")
     fun getAllSubjects(): Flow<List<Subject>>
 
     @Query("SELECT * FROM subjects WHERE id = :id")
@@ -25,6 +25,9 @@ interface SubjectDao {
 
     @Update
     suspend fun update(subject: Subject)
+
+    @Update
+    suspend fun updateAll(subjects: List<Subject>)
 
     @Delete
     suspend fun delete(subject: Subject)

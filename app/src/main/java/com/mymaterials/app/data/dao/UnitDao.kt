@@ -29,6 +29,12 @@ interface UnitDao {
     @Update
     suspend fun update(unit: StudyUnit)
 
+    @Update
+    suspend fun updateAll(units: List<StudyUnit>)
+
+    @Query("SELECT COALESCE(MAX(`order`), -1) FROM units WHERE subjectId = :subjectId")
+    suspend fun getMaxUnitOrder(subjectId: Long): Int
+
     @Delete
     suspend fun delete(unit: StudyUnit)
 

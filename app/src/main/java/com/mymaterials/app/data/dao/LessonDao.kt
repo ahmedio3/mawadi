@@ -35,6 +35,12 @@ interface LessonDao {
     @Update
     suspend fun update(lesson: Lesson)
 
+    @Update
+    suspend fun updateAll(lessons: List<Lesson>)
+
+    @Query("SELECT COALESCE(MAX(`order`), -1) FROM lessons WHERE subjectId = :subjectId AND unitId IS NULL")
+    suspend fun getMaxDirectLessonOrder(subjectId: Long): Int
+
     @Delete
     suspend fun delete(lesson: Lesson)
 

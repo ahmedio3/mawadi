@@ -3,22 +3,27 @@ package com.mymaterials.app.ui.screens
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +32,8 @@ import com.mymaterials.app.data.entity.LessonStatus
 import com.mymaterials.app.data.entity.Subject
 import com.mymaterials.app.data.repository.MaterialsRepository
 import com.mymaterials.app.ui.components.IosProgressCircle
+import com.mymaterials.app.ui.components.ReorderableLazyColumn
+import com.mymaterials.app.ui.components.SkeletonSubjectCard
 import com.mymaterials.app.ui.theme.IosBackground
 import com.mymaterials.app.ui.theme.IosBlue
 import com.mymaterials.app.ui.theme.IosCard
@@ -43,23 +50,14 @@ fun SubjectsScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val subjects by repository.getAllSubjects().collectAsState(initial = emptyList())
-    // نحتاج progress لكل مادة - نجمع الدروس لكل مادة
-    var lessonsCountMap by remember { mutableStateOf<Map<Long, Pair<Int, Int>>>(emptyMap()) } // subjectId -> (remaining, total)
-
-    // حساب المتبقي لكل مادة
-    LaunchedEffect(subjects) {
-        val map = mutableMapOf<Long, Pair<Int, Int>>()
-        for (s in subjects) {
-            val lessons = repository.getLessonsForSubject(s.id) // flow, نحتاج sync
-            // للبساطة: نستخدم getAllForBackup للعد؟ لا. نستخدم suspend للحصول
-        }
-    }
+    // null = جار التحميل، emptyList = لا يوجد مواد فعلا
+    val subjects by repository.getAllSubjects().collectAsState(initial = null)
 
     var showAddDialog by remember { mutableStateOf(false) }
     var editTarget by remember { mutableStateOf<Subject?>(null) }
     var showActionSheet by remember { mutableStateOf<Subject?>(null) }
     var textField by remember { mutableStateOf("") }
+    var reorderMode by remember { mutableStateOf(false) }
 
     // Backup launchers - زر أيقونة فقط
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -87,28 +85,56 @@ fun SubjectsScreen(
         containerColor = IosBackground,
         topBar = {
             TopAppBar(
-                title = { Text("موادي", fontWeight = FontWeight.Bold, fontSize = 28.sp) },
+                title = {
+                    Text(
+                        if (reorderMode) "ترتيب المواد" else "موادي",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = IosBackground),
                 actions = {
-                    IconButton(onClick = { showBackupSheet = true }) {
-                        Icon(Icons.Default.Share, contentDescription = "نسخ احتياطي")
-                    }
-                    IconButton(onClick = onStatsClick) {
-                        Icon(Icons.Default.BarChart, contentDescription = "إحصائيات")
+                    if (reorderMode) {
+                        TextButton(onClick = { reorderMode = false }) {
+                            Text("تم", color = IosBlue, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        TextButton(onClick = { if (subjects?.isNotEmpty() == true) reorderMode = true }) {
+                            Text("ترتيب", color = IosBlue)
+                        }
+                        IconButton(onClick = { showBackupSheet = true }) {
+                            Icon(Icons.Default.Share, contentDescription = "نسخ احتياطي")
+                        }
+                        IconButton(onClick = onStatsClick) {
+                            Icon(Icons.Default.BarChart, contentDescription = "إحصائيات")
+                        }
                     }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { textField = ""; showAddDialog = true },
-                containerColor = IosBlue,
-                contentColor = IosCard,
-                shape = RoundedCornerShape(16.dp)
-            ) { Icon(Icons.Default.Add, null) }
+            if (!reorderMode) {
+                FloatingActionButton(
+                    onClick = { textField = ""; showAddDialog = true },
+                    containerColor = IosBlue,
+                    contentColor = IosCard,
+                    shape = RoundedCornerShape(16.dp)
+                ) { Icon(Icons.Default.Add, null) }
+            }
         }
     ) { padding ->
-        if (subjects.isEmpty()) {
+        val current = subjects
+        if (current == null) {
+            // شاشة تحميل هيكلية أثناء جلب البيانات
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp),
+                userScrollEnabled = false
+            ) {
+                items(4) { SkeletonSubjectCard() }
+            }
+        } else if (current.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("ابدأ بإضافة مادتك الأولى", color = IosGray, fontSize = 16.sp)
@@ -118,19 +144,66 @@ fun SubjectsScreen(
                     }
                 }
             }
+        } else if (reorderMode) {
+            // وضع الترتيب: السحب من المقبض فقط، والحركة داخل نفس المجموعة (مثبت / عادي)
+            Column(Modifier.fillMaxSize().padding(padding)) {
+                Text(
+                    "اسحب من المقبض لتحريك المادة داخل مجموعتها",
+                    fontSize = 12.sp,
+                    color = IosGray,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                )
+                ReorderableLazyColumn(
+                    items = current,
+                    key = { it.id },
+                    canMove = { a, b -> a.isPinned == b.isPinned },
+                    onCommit = { reordered -> scope.launch { repository.reorderSubjects(reordered) } },
+                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp)
+                ) { subject, _, handle ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            SubjectCard(
+                                subject = subject,
+                                repository = repository,
+                                onClick = {},
+                                onLongClick = {}
+                            )
+                        }
+                        Icon(
+                            Icons.Default.DragHandle,
+                            contentDescription = "سحب للترتيب",
+                            tint = IosGray,
+                            modifier = handle
+                                .size(44.dp)
+                                .padding(10.dp)
+                        )
+                    }
+                }
+            }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp)
             ) {
-                items(subjects, key = { it.id }) { subject ->
-                    SubjectCard(
-                        subject = subject,
-                        repository = repository,
-                        onClick = { onSubjectClick(subject.id) },
-                        onLongClick = { showActionSheet = subject }
-                    )
+                itemsIndexed(current, key = { _, s -> s.id }) { index, subject ->
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = true,
+                        enter = androidx.compose.animation.fadeIn(
+                            animationSpec = tween(durationMillis = 250, delayMillis = (index * 60).coerceAtMost(300))
+                        ) + androidx.compose.animation.slideInVertically(
+                            animationSpec = tween(durationMillis = 250, delayMillis = (index * 60).coerceAtMost(300)),
+                            initialOffsetY = { it / 3 }
+                        )
+                    ) {
+                        SubjectCard(
+                            subject = subject,
+                            repository = repository,
+                            onClick = { onSubjectClick(subject.id) },
+                            onLongClick = { showActionSheet = subject }
+                        )
+                    }
                 }
             }
         }
@@ -243,10 +316,12 @@ private fun SubjectCard(
     val total = lessons.size
     val done = lessons.count { it.status == LessonStatus.DONE }
     val progress = if (total == 0) 0f else done.toFloat() / total
-    val remaining = total - done
+    val isComplete = total > 0 && done == total
 
     Card(
-        modifier = Modifier.fillMaxWidth().combinedClickable(onClick = onClick, onLongClick = onLongClick),
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = IosCard),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -262,10 +337,14 @@ private fun SubjectCard(
                         Spacer(Modifier.width(6.dp))
                         Icon(Icons.Default.PushPin, contentDescription = null, modifier = Modifier.size(14.dp), tint = IosBlue)
                     }
+                    if (isComplete) {
+                        Spacer(Modifier.width(6.dp))
+                        Text("✅", fontSize = 14.sp)
+                    }
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    if (total == 0) "لا يوجد دروس" else "متبقي $remaining من $total",
+                    if (total == 0) "لا يوجد دروس" else "تم $done من $total",
                     fontSize = 13.sp,
                     color = IosGray
                 )

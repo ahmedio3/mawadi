@@ -22,3 +22,4 @@ new_apk/
 !gradle/wrapper/gradle-wrapper.jar
 .agents/
 skills-lock.json
+# debug.keystore is committed for consistent SHA-1 (same as wacher)
