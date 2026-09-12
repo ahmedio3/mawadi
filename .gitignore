@@ -20,3 +20,5 @@ apk_new/
 new_apk/
 *.apk
 !gradle/wrapper/gradle-wrapper.jar
+.agents/
+skills-lock.json

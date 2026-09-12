@@ -6,7 +6,7 @@ plugins {
 
 android {
   namespace = "com.mymaterials.app"
-  compileSdk = 36
+  compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
     applicationId = "com.mymaterials.app"
