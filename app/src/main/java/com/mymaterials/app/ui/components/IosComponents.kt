@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,9 +19,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,15 +35,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mymaterials.app.ui.theme.IosBlue
-import com.mymaterials.app.ui.theme.IosCard
-import com.mymaterials.app.ui.theme.IosGray
-import com.mymaterials.app.ui.theme.IosGreen
-import com.mymaterials.app.ui.theme.IosOrange
+import com.mymaterials.app.ui.theme.AppTheme
 
 @Composable
 fun IosProgressCircle(
@@ -49,9 +49,9 @@ fun IosProgressCircle(
     modifier: Modifier = Modifier
 ) {
     val color = when {
-        progress >= 1f -> IosGreen
-        progress > 0f -> IosBlue
-        else -> IosGray.copy(alpha = 0.3f)
+        progress >= 1f -> AppTheme.colors.green
+        progress > 0f -> AppTheme.colors.blue
+        else -> AppTheme.colors.gray.copy(alpha = 0.3f)
     }
     Box(
         modifier = modifier.size(size.dp),
@@ -62,7 +62,7 @@ fun IosProgressCircle(
             modifier = Modifier.size(size.dp),
             color = color,
             strokeWidth = stroke.dp,
-            trackColor = IosGray.copy(alpha = 0.15f)
+            trackColor = AppTheme.colors.gray.copy(alpha = 0.15f)
         )
         if (showPercent) {
             Text(
@@ -72,6 +72,27 @@ fun IosProgressCircle(
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
+    }
+}
+
+@Composable
+fun ReorderIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(AppTheme.colors.blue.copy(alpha = if (AppTheme.colors.isDark) 0.22f else 0.12f))
+    ) {
+        Icon(
+            imageVector = Icons.Default.SwapVert,
+            contentDescription = "ترتيب",
+            tint = AppTheme.colors.blue,
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
@@ -87,8 +108,9 @@ private fun shimmerBrush(): Brush {
         ),
         label = "shimmerTranslate"
     )
-    val base = IosGray.copy(alpha = 0.18f)
-    val highlight = IosGray.copy(alpha = 0.08f)
+    val isDark = AppTheme.colors.isDark
+    val base = AppTheme.colors.gray.copy(alpha = if (isDark) 0.24f else 0.18f)
+    val highlight = AppTheme.colors.gray.copy(alpha = if (isDark) 0.12f else 0.08f)
     return Brush.linearGradient(
         colors = listOf(base, highlight, base),
         start = Offset(translate - 300f, 0f),
@@ -102,7 +124,7 @@ fun SkeletonSubjectCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = IosCard),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -133,7 +155,7 @@ fun SkeletonLessonRow() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = IosCard),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.card),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -158,7 +180,7 @@ fun IosCardContainer(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(IosCard)
+            .background(AppTheme.colors.card)
     ) {
         content()
     }

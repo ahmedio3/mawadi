@@ -14,40 +14,52 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mymaterials.app.data.entity.LessonStatus
-import com.mymaterials.app.data.repository.MaterialsRepository
+import com.mymaterials.app.data.entity.Subject
 import com.mymaterials.app.ui.components.IosProgressCircle
-import com.mymaterials.app.ui.theme.IosBackground
-import com.mymaterials.app.ui.theme.IosCard
-import com.mymaterials.app.ui.theme.IosGray
+import com.mymaterials.app.ui.theme.AppTheme
+import com.mymaterials.app.ui.viewmodels.StatsViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatsScreen(repository: MaterialsRepository, onBack: () -> Unit) {
-    val subjects by repository.getAllSubjects().collectAsState(initial = emptyList())
+fun StatsScreen(
+    viewModel: StatsViewModel,
+    onBack: () -> Unit
+) {
+    val subjects by viewModel.subjects.collectAsState()
+    val overallStats by viewModel.overallStats.collectAsState()
 
-    // نحسب إجمالي عام - نحتاج كل الدروس لكل المواد
-    var total by remember { mutableStateOf(0) }
-    var done by remember { mutableStateOf(0) }
-    LaunchedEffect(subjects) {
-        // طريقة بسيطة: نجمع من backup data
-        val data = repository.getAllForBackup()
-        total = data.lessons.size
-        done = data.lessons.count { it.status == LessonStatus.DONE }
+    LaunchedEffect(Unit) {
+        viewModel.loadStats()
     }
-    val progress = if (total == 0) 0f else done.toFloat() / total
 
     Scaffold(
-        containerColor = IosBackground,
+        containerColor = AppTheme.colors.background,
         topBar = {
             TopAppBar(
-                title = { Text("الإحصائيات", fontWeight = FontWeight.Bold) },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = IosBackground)
+                title = {
+                    Text(
+                        "الإحصائيات",
+                        fontWeight = FontWeight.Bold,
+                        color = AppTheme.colors.textPrimary
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "رجوع",
+                            tint = AppTheme.colors.textPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AppTheme.colors.background)
             )
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -55,27 +67,57 @@ fun StatsScreen(repository: MaterialsRepository, onBack: () -> Unit) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = IosCard),
+                    colors = CardDefaults.cardColors(containerColor = AppTheme.colors.card),
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
-                    Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        IosProgressCircle(progress = progress, size = 80, stroke = 6)
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        IosProgressCircle(progress = overallStats.progress, size = 80, stroke = 6)
                         Spacer(Modifier.height(12.dp))
-                        Text("$done / $total", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        Text("درس مكتمل", fontSize = 13.sp, color = IosGray)
+                        Text(
+                            "${overallStats.done} / ${overallStats.total}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = AppTheme.colors.textPrimary
+                        )
+                        Text(
+                            "درس مكتمل",
+                            fontSize = 13.sp,
+                            color = AppTheme.colors.gray
+                        )
                         Spacer(Modifier.height(8.dp))
-                        Text("${(progress * 100).toInt()}% نسبة الإنجاز العام", fontSize = 12.sp, color = IosGray)
+                        Text(
+                            "${(overallStats.progress * 100).toInt()}% نسبة الإنجاز العام",
+                            fontSize = 12.sp,
+                            color = AppTheme.colors.gray
+                        )
                     }
                 }
             }
             item {
-                Text("التقدم لكل مادة", fontWeight = FontWeight.Medium, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
+                Text(
+                    "التقدم لكل مادة",
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
             if (subjects.isEmpty()) {
-                item { Text("لا يوجد مواد بعد", color = IosGray, modifier = Modifier.padding(16.dp)) }
+                item {
+                    Text(
+                        "لا يوجد مواد بعد",
+                        color = AppTheme.colors.gray,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
             } else {
                 items(subjects, key = { it.id }) { subject ->
-                    SubjectStatRow(subject = subject, repository = repository)
+                    SubjectStatRow(subject = subject, viewModel = viewModel)
                 }
             }
         }
@@ -83,8 +125,8 @@ fun StatsScreen(repository: MaterialsRepository, onBack: () -> Unit) {
 }
 
 @Composable
-private fun SubjectStatRow(subject: com.mymaterials.app.data.entity.Subject, repository: MaterialsRepository) {
-    val lessons by repository.getLessonsForSubject(subject.id).collectAsState(initial = emptyList())
+private fun SubjectStatRow(subject: Subject, viewModel: StatsViewModel) {
+    val lessons by viewModel.getLessonsForSubject(subject.id).collectAsState(initial = emptyList())
     val total = lessons.size
     val done = lessons.count { it.status == LessonStatus.DONE }
     val progress = if (total == 0) 0f else done.toFloat() / total
@@ -93,13 +135,28 @@ private fun SubjectStatRow(subject: com.mymaterials.app.data.entity.Subject, rep
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = IosCard),
+        colors = CardDefaults.cardColors(containerColor = AppTheme.colors.card),
         elevation = CardDefaults.cardElevation(1.dp)
     ) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column(Modifier.weight(1f)) {
-                Text(subject.name, fontWeight = FontWeight.Medium, fontSize = 15.sp, maxLines = 1)
-                Text(if (total == 0) "لا يوجد دروس" else "متبقي $remaining من $total", fontSize = 12.sp, color = IosGray)
+                Text(
+                    subject.name,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 15.sp,
+                    color = AppTheme.colors.textPrimary,
+                    maxLines = 1
+                )
+                Text(
+                    if (total == 0) "لا يوجد دروس" else "متبقي $remaining من $total",
+                    fontSize = 12.sp,
+                    color = AppTheme.colors.gray
+                )
             }
             IosProgressCircle(progress = progress, size = 36)
         }
